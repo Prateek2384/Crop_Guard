@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Crop Disease Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 400px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        #video, #capturedImage {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        #capture, #retake, #uploadButton {
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        #retake {
+            background-color: #dc3545; /* Red for retake */
+            display: none; /* Initially hidden */
+        }
+
+        #timer {
+            font-size: 18px;
+            color: #555;
+            margin-top: 10px;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        #uploadForm {
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Crop Disease Detection</h1>
+        <video id="video" autoplay></video>
+        <img id="capturedImage" src="" alt="Captured Image" style="display: none;">
+        <br>
+        <button id="capture">Capture Photo</button>
+        <button id="retake">Retake Photo</button>
+        <div id="timer"></div>
+        <canvas id="canvas" width="300" height="300"></canvas>
+        <form id="uploadForm" action="/upload" method="post">
+            <input type="hidden" name="imageData" id="imageData">
+            <input type="submit" id="uploadButton" value="Upload">
+        </form>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture');
+        const retakeButton = document.getElementById('retake');
+        const uploadForm = document.getElementById('uploadForm');
+        const imageDataInput = document.getElementById('imageData');
+        const timerDiv = document.getElementById('timer');
+        const capturedImage = document.getElementById('capturedImage');
+
+        let countdown;
+        let countdownSeconds = 10; // Set the countdown time to 10 seconds
+
+        // Request access to the rear camera using facingMode: 'environment'
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: 'environment' // This requests the back camera
+            }
+        })
+        .then((stream) => {
+            video.srcObject = stream;
+        })
+        .catch((err) => {
+            console.error("Error accessing the camera: ", err);
+            alert("Camera access is blocked or not available. Please check your browser settings.");
+        });
+
+        captureButton.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataURL = canvas.toDataURL('image/png');
+            imageDataInput.value = dataURL;
+
+            // Show the captured image in the video frame
+            video.style.display = 'none';
+            capturedImage.style.display = 'block';
+            capturedImage.src = dataURL;
+
+            captureButton.style.display = 'none'; // Hide the capture button
+            retakeButton.style.display = 'inline-block'; // Show the retake button
+            startCountdown();
+        });
+
+        retakeButton.addEventListener('click', () => {
+            clearTimeout(countdown); // Stop the countdown
+            timerDiv.textContent = ""; // Clear the timer display
+
+            // Reset video and image display
+            capturedImage.style.display = 'none';
+            video.style.display = 'block';
+
+            retakeButton.style.display = 'none'; // Hide the retake button
+            captureButton.style.display = 'inline-block'; // Show the capture button
+            canvas.style.display = 'none'; // Hide the canvas
+        });
+
+        function startCountdown() {
+            let seconds = countdownSeconds;
+            timerDiv.textContent = `Uploading in ${seconds} seconds...`;
+
+            countdown = setInterval(() => {
+                seconds--;
+                timerDiv.textContent = `Uploading in ${seconds} seconds...`;
+
+                if (seconds <= 0) {
+                    clearInterval(countdown);
+                    uploadForm.submit(); // Automatically submit the form after 10 seconds
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
